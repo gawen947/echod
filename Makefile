@@ -27,6 +27,7 @@ $(TARGET): $(OBJS)
 clean:
 	@echo "===> CLEAN"
 	$(Q)rm -f *.o
+	$(Q)rm -f *.d
 	$(Q)rm -f $(TARGET)
 
 install:
