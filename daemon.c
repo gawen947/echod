@@ -79,13 +79,18 @@ void write_pid(const char *pid_file)
 
 void drop_privileges(const char *user, const char *group)
 {
-  struct passwd *user_pwd  = getpwnam(user);
-  struct group  *group_pwd = getgrnam(group);
+  struct passwd *user_pwd    = getpwnam(user);
+  struct group  *group_pwd   = getgrnam(group);
 
   if(!user_pwd)
     errx(EXIT_FAILURE, "invalid user");
   if(!group_pwd)
     errx(EXIT_FAILURE, "invalid group");
+
+  /* Note that we expect /var/empty to exist.
+     It's not always the case on Linux. */
+  if(chroot("/var/empty") || chdir("/"))
+    errx(EXIT_FAILURE, "cannot chroot");
 
   if(setgid(group_pwd->gr_gid) ||
      setuid(user_pwd->pw_uid))
