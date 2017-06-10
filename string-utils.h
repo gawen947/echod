@@ -22,5 +22,10 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _STRING_UTILS_H_
+#define _STRING_UTILS_H_
+
 /* Equivalent of the Unix basename command. */
 const char * basename(const char *s);
+
+#endif /* _STRING_UTILS_H_ */
