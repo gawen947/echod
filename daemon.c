@@ -77,22 +77,26 @@ void write_pid(const char *pid_file)
   close(fd);
 }
 
-void drop_privileges(const char *user, const char *group)
+void drop_privileges(const char *user)
 {
-  struct passwd *user_pwd    = getpwnam(user);
-  struct group  *group_pwd   = getgrnam(group);
+  struct passwd *pw = getpwnam(user);
+  uid_t uid;
+  gid_t gid;
 
-  if(!user_pwd)
+  if(!pw)
     errx(EXIT_FAILURE, "invalid user");
-  if(!group_pwd)
-    errx(EXIT_FAILURE, "invalid group");
+
+  uid = pw->pw_uid;
+  gid = pw->pw_gid;
 
   /* Note that we expect /var/empty to exist.
      It's not always the case on Linux. */
   if(chroot("/var/empty") || chdir("/"))
     errx(EXIT_FAILURE, "cannot chroot");
 
-  if(setgid(group_pwd->gr_gid) ||
-     setuid(user_pwd->pw_uid))
+  /* Drop privlieges OpenBSD's way. */
+  if(setgroups(1, &pw->pw_gid) ||
+     setresgid(gid, gid, gid) ||
+     setresuid(uid, uid, uid))
     err(EXIT_FAILURE, "cannot drop privileges");
 }
