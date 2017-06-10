@@ -25,6 +25,10 @@
 #ifndef _STRING_UTILS_H_
 #define _STRING_UTILS_H_
 
+/* Transform macro argument as string literal. */
+#define _stringify(s) #s
+#define stringify(s) _stringify(s)
+
 /* Equivalent of the Unix basename command. */
 const char * basename(const char *s);
 
