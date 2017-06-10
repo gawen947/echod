@@ -32,6 +32,10 @@
 #include <grp.h>
 #include <err.h>
 
+#ifdef __FreeBSD__
+# include <sys/capsicum.h>
+#endif
+
 #include "safe-call.h"
 
 #if !defined(daemon)
@@ -71,9 +75,7 @@ void write_pid(const char *pid_file)
   int fd = xopen(pid_file, O_WRONLY | O_TRUNC | O_CREAT, 0660);
 
   sprintf(buf, "%d\n", getpid());
-
   write(fd, buf, strlen(buf));
-
   close(fd);
 }
 
@@ -94,9 +96,21 @@ void drop_privileges(const char *user)
   if(chroot("/var/empty") || chdir("/"))
     errx(EXIT_FAILURE, "cannot chroot");
 
-  /* Drop privlieges OpenBSD's way. */
+  /* Drop privileges nicely. */
   if(setgroups(1, &pw->pw_gid) ||
-     setresgid(gid, gid, gid) ||
+     setresgid(gid, gid, gid)  ||
      setresuid(uid, uid, uid))
     err(EXIT_FAILURE, "cannot drop privileges");
+
+  /* Enter sandboxed mode */
+#ifdef __OpenBSD__
+  if(pledge("stdio inet proc", NULL) == -1)
+    err(EXIT_FAILURE, "cannot pledge");
+#endif
+
+#ifdef __FreeBSD__
+  if(cap_enter() < 0)
+    err(EXIT_FAILURE, "cannot enter into capability mode");
+  /* We still have to drop privileges for each fd later on. */
+#endif
 }

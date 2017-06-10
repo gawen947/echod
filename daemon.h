@@ -30,6 +30,6 @@ int daemon(int nochdir, int noclose);
 #endif /* daemon() */
 
 void write_pid(const char *pid_file);
-void drop_privileges(const char *user, const char *group);
+void drop_privileges(const char *user);
 
 #endif /* _DAEMON_H_ */
