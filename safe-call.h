@@ -37,18 +37,6 @@
 #include <unistd.h>
 #include <utime.h>
 
-#define MIN(x,y) ((x) < (y) ? (x) : (y))
-#define MAX(x,y) ((x) > (y) ? (x) : (y))
-#define S_BOOLEAN(a) (a ? "yes" : "no")
-
-#define verbose(t, r, ...) if(r > t) fprintf (stderr, __VA_ARGS__)
-
-#ifndef NDEBUG
-# define UNPTR(a) a = NULL
-#else
-# define UNPTR(a)
-#endif
-
 int xfork();
 int xpipe(int pipefd[2]);
 int xdup2(int oldfd, int newfd);
