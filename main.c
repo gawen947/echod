@@ -137,6 +137,9 @@ int main(int argc, char *argv[])
     { NULL, 0, NULL, 0 }
   };
 
+#ifdef __Linux__
+  setproctitle_init(argc, argv, environ); /* libbsd needs that */
+#endif
   prog_name = basename(argv[0]);
 
   while(1) {

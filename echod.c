@@ -29,6 +29,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <signal.h>
 #include <assert.h>
@@ -43,6 +44,7 @@
 #include "echod.h"
 #include "safe-call.h"
 #include "common.h"
+#include "version.h"
 
 #define BUFFER_SIZE 4096
 #define BACKLOG     4
@@ -290,8 +292,41 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
   }
 }
 
+static void rename_child(void)
+{
+  const char *st_s;
+  const char *af_s;
+
+  switch(af) {
+  case AF_INET:
+    af_s = "IPv4";
+    break;
+  case AF_INET6:
+    af_s = "IPv6";
+    break;
+  default:
+    assert(0);
+  }
+
+  switch(st) {
+  case SOCK_DGRAM:
+    st_s = "UDP";
+    break;
+  case SOCK_STREAM:
+    st_s = "TCP";
+    break;
+  default:
+    assert(0);
+  }
+
+  setproctitle("listen on %s %s", st_s, af_s);
+}
+
 void server(unsigned int max_clients, unsigned int timeout)
 {
+  /* reflect address family and socket type in child name */
+  rename_child();
+
   switch(st) {
   case SOCK_DGRAM:
     server_udp();
