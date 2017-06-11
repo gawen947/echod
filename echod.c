@@ -187,6 +187,56 @@ static void sig_chld(int signum)
   clients--;
 }
 
+static void rename_listen_child(void)
+{
+  const char *st_s;
+  const char *af_s;
+
+  switch(af) {
+  case AF_INET:
+    af_s = "IPv4";
+    break;
+  case AF_INET6:
+    af_s = "IPv6";
+    break;
+  default:
+    assert(0);
+  }
+
+  switch(st) {
+  case SOCK_DGRAM:
+    st_s = "UDP";
+    break;
+  case SOCK_STREAM:
+    st_s = "TCP";
+    break;
+  default:
+    assert(0);
+  }
+
+  setproctitle("listen on %s %s", st_s, af_s);
+}
+
+static void rename_client_child(const struct sockaddr *addr)
+{
+  char client[INET6_ADDRSTRLEN];
+  const void *addr_in;
+
+  switch(af) {
+  case AF_INET:
+    addr_in = &((struct sockaddr_in *)addr)->sin_addr;
+    break;
+  case AF_INET6:
+    addr_in = &((struct sockaddr_in6 *)addr)->sin6_addr;
+    break;
+  default:
+    assert(0);
+  }
+
+  inet_ntop(af, addr_in, client, sizeof(client));
+  setproctitle("connection from %s", client);
+}
+
 static void server_tcp(unsigned int max_clients, unsigned int timeout)
 {
   struct timeval timeout_tv;
@@ -221,6 +271,8 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
       syslog(LOG_ERR, "network error: %s", strerror(errno));
       err(EXIT_FAILURE, "network error");
     }
+
+    rename_client_child((struct sockaddr *)&from);
 
 #ifdef __FreeBSD__
     cap_rights_init(&rights, CAP_RECV, CAP_SEND, CAP_SETSOCKOPT);
@@ -292,40 +344,10 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
   }
 }
 
-static void rename_child(void)
-{
-  const char *st_s;
-  const char *af_s;
-
-  switch(af) {
-  case AF_INET:
-    af_s = "IPv4";
-    break;
-  case AF_INET6:
-    af_s = "IPv6";
-    break;
-  default:
-    assert(0);
-  }
-
-  switch(st) {
-  case SOCK_DGRAM:
-    st_s = "UDP";
-    break;
-  case SOCK_STREAM:
-    st_s = "TCP";
-    break;
-  default:
-    assert(0);
-  }
-
-  setproctitle("listen on %s %s", st_s, af_s);
-}
-
 void server(unsigned int max_clients, unsigned int timeout)
 {
   /* reflect address family and socket type in child name */
-  rename_child();
+  rename_listen_child();
 
   switch(st) {
   case SOCK_DGRAM:
