@@ -38,6 +38,7 @@
 #include "daemon.h"
 #include "common.h"
 #include "help.h"
+#include "log.h"
 
 static void sig_quit(int signum)
 {
@@ -108,7 +109,7 @@ int main(int argc, char *argv[])
   unsigned long  server_flags = 0;
   unsigned int   max_clients  = 64;
   unsigned int   timeout      = 100;
-  unsigned int   log_level    = LOG_UPTO(LOG_INFO);
+  unsigned int   loglevel     = LOG_INFO;
   int            exit_status  = EXIT_FAILURE;
   int            only_udp  = 0, only_tcp   = 0;
   int            only_inet = 0, only_inet6 = 0;
@@ -159,33 +160,33 @@ int main(int argc, char *argv[])
       pid_file = optarg;
       break;
     case 'l':
-      log_level = xatou(optarg, &n);
+      loglevel = xatou(optarg, &n);
       if(n)
         errx(EXIT_FAILURE, "invalid log level");
-      switch(log_level) {
+      switch(loglevel) {
       case 1:
-        log_level = LOG_UPTO(LOG_EMERG);
+        loglevel = LOG_EMERG;
         break;
       case 2:
-        log_level = LOG_UPTO(LOG_ALERT);
+        loglevel = LOG_ALERT;
         break;
       case 3:
-        log_level = LOG_UPTO(LOG_CRIT);
+        loglevel = LOG_CRIT;
         break;
       case 4:
-        log_level = LOG_UPTO(LOG_ERR);
+        loglevel = LOG_ERR;
         break;
       case 5:
-        log_level = LOG_UPTO(LOG_WARNING);
+        loglevel = LOG_WARNING;
         break;
       case 6:
-        log_level = LOG_UPTO(LOG_NOTICE);
+        loglevel = LOG_NOTICE;
         break;
       case 7:
-        log_level = LOG_UPTO(LOG_INFO);
+        loglevel = LOG_INFO;
         break;
       case 8:
-        log_level = LOG_UPTO(LOG_DEBUG);
+        loglevel = LOG_DEBUG;
         break;
       default:
         errx(EXIT_FAILURE, "invalid log level");
@@ -269,16 +270,13 @@ int main(int argc, char *argv[])
   }
 
   /* syslog and start notification */
-  openlog(prog_name, LOG_PID, LOG_DAEMON | LOG_LOCAL0);
-  setlogmask(log_level);
-  syslog(LOG_NOTICE, PACKAGE_VERSION " starting...");
+  sysstd_openlog(prog_name, LOG_PID, LOG_DAEMON | LOG_LOCAL0, loglevel);
+  sysstd_log(LOG_NOTICE, PACKAGE_VERSION " starting...");
 
   /* daemon mode */
   if(server_flags & SRV_DAEMON) {
-    if(daemon(0, 0) < 0) {
-      syslog(LOG_ERR, "cannot switch to daemon mode: %m");
-      err(EXIT_FAILURE, "cannot switch to daemon mode");
-    }
+    if(daemon(0, 0) < 0)
+      sysstd_abort("cannot switch to daemon mode");
     syslog(LOG_INFO, "switched to daemon mode");
   }
 
