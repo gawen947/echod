@@ -25,6 +25,7 @@
 #ifndef _LOG_H_
 #define _LOG_H_
 
+#include <syslog.h>
 #include <stdlib.h>
 
 #define sysstd_abort(...)  sysstd_err (EXIT_FAILURE, LOG_ERR, __VA_ARGS__)

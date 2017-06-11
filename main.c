@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
   unsigned long  server_flags = 0;
   unsigned int   max_clients  = 64;
   unsigned int   timeout      = 100;
-  unsigned int   loglevel     = LOG_INFO;
+  unsigned int   loglevel     = LOG_NOTICE;
   int            exit_status  = EXIT_FAILURE;
   int            only_udp  = 0, only_tcp   = 0;
   int            only_inet = 0, only_inet6 = 0;
@@ -277,7 +277,7 @@ int main(int argc, char *argv[])
   if(server_flags & SRV_DAEMON) {
     if(daemon(0, 0) < 0)
       sysstd_abort("cannot switch to daemon mode");
-    syslog(LOG_INFO, "switched to daemon mode");
+    sysstd_log(LOG_INFO, "switched to daemon mode");
   }
 
   /* setup:
@@ -294,7 +294,7 @@ int main(int argc, char *argv[])
 
   if(user) {
     drop_privileges(user);
-    syslog(LOG_INFO, "drop privileges");
+    sysstd_log(LOG_INFO, "privileges dropped to %s", user);
   }
 
   setup_signals();

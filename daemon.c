@@ -30,13 +30,13 @@
 #include <string.h>
 #include <pwd.h>
 #include <grp.h>
-#include <err.h>
 
 #ifdef __FreeBSD__
 # include <sys/capsicum.h>
 #endif
 
 #include "safe-call.h"
+#include "log.h"
 
 #if !defined(daemon)
 /* for targets that do not implement daemon() */
@@ -86,7 +86,7 @@ void drop_privileges(const char *user)
   gid_t gid;
 
   if(!pw)
-    errx(EXIT_FAILURE, "invalid user");
+    sysstd_abort("invalid user");
 
   uid = pw->pw_uid;
   gid = pw->pw_gid;
@@ -94,23 +94,23 @@ void drop_privileges(const char *user)
   /* Note that we expect /var/empty to exist.
      It's not always the case on Linux. */
   if(chroot("/var/empty") || chdir("/"))
-    errx(EXIT_FAILURE, "cannot chroot");
+    sysstd_abort("cannot chroot");
 
   /* Drop privileges nicely. */
   if(setgroups(1, &pw->pw_gid) ||
      setresgid(gid, gid, gid)  ||
      setresuid(uid, uid, uid))
-    err(EXIT_FAILURE, "cannot drop privileges");
+    sysstd_abort("cannot drop privileges");
 
   /* Enter sandboxed mode */
 #ifdef __OpenBSD__
   if(pledge("stdio inet proc", NULL) == -1)
-    err(EXIT_FAILURE, "cannot pledge");
+    sysstd_abort("cannot pledge");
 #endif
 
 #ifdef __FreeBSD__
   if(cap_enter() < 0)
-    err(EXIT_FAILURE, "cannot enter into capability mode");
+    sysstd_abort("cannot enter into capability mode");
   /* We still have to drop privileges for each fd later on. */
 #endif
 }

@@ -36,7 +36,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <syslog.h>
-#include <err.h>
 
 #ifdef __FreeBSD__
 # include <sys/capsicum.h>
@@ -46,6 +45,7 @@
 #include "safe-call.h"
 #include "common.h"
 #include "version.h"
+#include "log.h"
 
 #define BUFFER_SIZE 4096
 #define BACKLOG     4
@@ -93,7 +93,7 @@ int bind_server(const char *host, const char *port, unsigned long flags)
 
   n = getaddrinfo(host, port, &hints, &resolution);
   if(n)
-    errx(EXIT_FAILURE, "cannot resolve requested address: %s", gai_strerror(n));
+    sysstd_abortx("cannot resolve requested address: %s", gai_strerror(n));
 
   for(r = resolution ; r ; r = r->ai_next) {
     /* filter unwanted addresses */
@@ -131,14 +131,14 @@ int bind_server(const char *host, const char *port, unsigned long flags)
 
       n = setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
       if(n < 0)
-        errx(EXIT_FAILURE, "cannot set socket options");
+        sysstd_abort("cannot set socket options");
 
       xbind(sd, r->ai_addr, r->ai_addrlen);
       ret = 0;
       goto EXIT;
     }
     else if(pid < 0) /* error */
-      err(EXIT_FAILURE, "fork error");
+      sysstd_abort("fork error");
     /* parent (continue) */
   }
 
@@ -167,16 +167,13 @@ static void server_udp(void)
     if(n < 0) {
       if(errno == EINTR)
         goto INTR;
-      syslog(LOG_ERR, "receive error: %s", strerror(errno));
-      err(EXIT_FAILURE, "receive error");
+      sysstd_abort("receive error");
     }
 
     /* answer */
     n = sendto(sd, buffer, n, 0, (struct sockaddr *)&from, from_len);
-    if(n < 0) {
-      syslog(LOG_ERR, "send error: %s", strerror(errno));
-      err(EXIT_FAILURE, "send error");
-    }
+    if(n < 0)
+      sysstd_abort("send error");
 
     clear_buffer();
   }
@@ -269,8 +266,7 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
     if(fd < 0) {
       if(errno == EINTR)
         goto ACPT_INTR;
-      syslog(LOG_ERR, "network error: %s", strerror(errno));
-      err(EXIT_FAILURE, "network error");
+      sysstd_abort("accept error");
     }
 
 #ifdef __FreeBSD__
@@ -280,7 +276,7 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
 
     if(max_clients && clients >= max_clients) {
       close(fd);
-      syslog(LOG_DEBUG, "connection dropped: maximum number of clients reached (%d)", clients);
+      sysstd_log(LOG_DEBUG, "connection dropped: maximum number of clients reached (%d)", clients);
       continue;
     }
     else
@@ -306,23 +302,19 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
           goto RECV_INTR;
         case EAGAIN:
           if(timeout) { /* probably a timeout */
-            syslog(LOG_DEBUG, "connection timeout");
-            warnx("connection timeout");
+            sysstd_log(LOG_DEBUG, "connection timeout");
             exit(1);
           }
           break;
         default:
-          syslog(LOG_ERR, "receive error: %s", strerror(errno));
-          err(EXIT_FAILURE, "receive error");
+          sysstd_abort("receive error");
         }
       }
 
       /* answer */
       n = send(fd, buffer, n, 0);
-      if(n < 0) {
-        syslog(LOG_ERR, "send error: %s", strerror(errno));
-        err(EXIT_FAILURE, "send error");
-      }
+      if(n < 0)
+        sysstd_abort("send error");
 
       /* We don't need to clear the buffer since
          we have one process per connection.
@@ -334,7 +326,7 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
       exit(0);
     }
     else if(pid < 0) /* error */
-      err(EXIT_FAILURE, "fork error");
+      sysstd_abort("fork error");
 
     /* parent (continue) */
     /* This is probably useless (but we do it anyway).
