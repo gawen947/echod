@@ -24,6 +24,7 @@
 
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -185,6 +186,7 @@ static void sig_chld(int signum)
 {
   UNUSED(signum);
   clients--;
+  wait(NULL);
 }
 
 static void rename_listen_child(void)
@@ -249,8 +251,7 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
 
   xlisten(sd, BACKLOG);
 
-  if(max_clients)
-    signal(SIGCHLD, sig_chld);
+  signal(SIGCHLD, sig_chld);
 
   timeout   *= 1000; /* ms to us */
   timeout_tv = (struct timeval){ .tv_sec  = timeout / 1000000,
