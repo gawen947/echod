@@ -44,6 +44,6 @@ enum srv_flags {
 int bind_server(const char *host, const char *port, unsigned long flags);
 
 /* Listen on the socket created for this specific child. */
-void server(void);
+void server(unsigned int max_clients);
 
 #endif /* _ECHOD_H_ */

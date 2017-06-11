@@ -77,19 +77,20 @@ static void setup_signals(void)
 static void print_help(const char *name)
 {
   struct opt_help messages[] = {
-    { 'h', "help",      "Show this help message" },
-    { 'V', "version",   "Show version information" },
+    { 'h', "help",        "Show this help message" },
+    { 'V', "version",     "Show version information" },
 #ifdef COMMIT
-    { 0,   "commit",    "Display commit information" },
+    { 0,   "commit",      "Display commit information" },
 #endif /* COMMIT */
-    { 'd', "daemon",    "Detach from controlling terminal" },
-    { 'U', "user",      "Relinquish privileges to user" },
-    { 'p', "pid",       "Write PID to file" },
-    { 'l', "log-level", "Syslog level from 1 to 8" },
-    { '4', "inet",      "Listen on IPv4 only" },
-    { '6', "inet6",     "Listen on IPv6 only" },
-    { 'u', "udp",       "Listen on UDP only" },
-    { 't', "tcp",       "Listen on TCP only" },
+    { 'd', "daemon",      "Detach from controlling terminal" },
+    { 'U', "user",        "Relinquish privileges to user" },
+    { 'p', "pid",         "Write PID to file" },
+    { 'l', "log-level",   "Syslog level from 1 to 8" },
+    { 'c', "max-clients", "Maximum number of simultaneous TCP clients" },
+    { '4', "inet",        "Listen on IPv4 only" },
+    { '6', "inet6",       "Listen on IPv6 only" },
+    { 'u', "udp",         "Listen on UDP only" },
+    { 't', "tcp",         "Listen on TCP only" },
     { 0, NULL, NULL }
   };
 
@@ -104,11 +105,12 @@ int main(int argc, char *argv[])
   const char    *host         = NULL;
   const char    *port         = NULL;
   unsigned long  server_flags = 0;
-  int            log_level    = LOG_UPTO(LOG_INFO);
+  unsigned int   max_clients  = 0;
+  unsigned int   log_level    = LOG_UPTO(LOG_INFO);
   int            exit_status  = EXIT_FAILURE;
-  int            n;
   int            only_udp  = 0, only_tcp   = 0;
   int            only_inet = 0, only_inet6 = 0;
+  int            n;
 
   enum opt {
     OPT_COMMIT = 0x100
@@ -124,6 +126,7 @@ int main(int argc, char *argv[])
     { "user", required_argument, NULL, 'U' },
     { "pid", required_argument, NULL, 'p' },
     { "log-level", required_argument, NULL, 'l' },
+    { "max-clients", required_argument, NULL, 'c' },
     { "inet", no_argument, NULL, '4' },
     { "inet6", no_argument, NULL, '6' },
     { "udp", no_argument, NULL, 'u' },
@@ -134,7 +137,7 @@ int main(int argc, char *argv[])
   prog_name = basename(argv[0]);
 
   while(1) {
-    int c = getopt_long(argc, argv, "hVdU:p:l:46ut", opts, NULL);
+    int c = getopt_long(argc, argv, "hVdU:p:l:c:46ut", opts, NULL);
 
     if(c == -1)
       break;
@@ -182,6 +185,10 @@ int main(int argc, char *argv[])
         errx(EXIT_FAILURE, "invalid log level");
       }
       break;
+    case 'c':
+      max_clients = xatou(optarg, &n);
+      if(n)
+        errx(EXIT_FAILURE, "invalid maximum number of clients");
     case '4':
       only_inet  = 1;
       break;
@@ -283,7 +290,7 @@ int main(int argc, char *argv[])
   setup_signals();
 
   if(!n) /* child */
-    server();
+    server(max_clients);
   else /* parent */
     while(wait(NULL) > 0);
 

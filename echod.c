@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <assert.h>
 #include <errno.h>
 #include <syslog.h>
@@ -37,6 +38,7 @@
 
 #include "echod.h"
 #include "safe-call.h"
+#include "common.h"
 
 #define BUFFER_SIZE 4096
 #define BACKLOG     4
@@ -52,6 +54,8 @@
 static int sd; /* socket descriptor */
 static int af; /* address family */
 static int st; /* socket type */
+
+static unsigned int clients; /* number of clients connected */
 
 static unsigned char buffer[BUFFER_SIZE];
 
@@ -165,9 +169,18 @@ static void server_udp(void)
   }
 }
 
-static void server_tcp(void)
+static void sig_chld(int signum)
+{
+  UNUSED(signum);
+  clients--;
+}
+
+static void server_tcp(unsigned int max_clients)
 {
   xlisten(sd, BACKLOG);
+
+  if(max_clients)
+  signal(SIGCHLD, sig_chld);
 
   while(1) {
     struct sockaddr_storage from;
@@ -184,6 +197,14 @@ static void server_tcp(void)
       syslog(LOG_ERR, "network error: %s", strerror(errno));
       err(EXIT_FAILURE, "network error");
     }
+
+    if(max_clients && clients >= max_clients) {
+      close(fd);
+      syslog(LOG_DEBUG, "connection dropped: maximum number of clients reached (%d)", clients);
+      continue;
+    }
+    else
+      clients++;
 
     /* fork again to handle connection */
     pid = fork();
@@ -227,7 +248,7 @@ static void server_tcp(void)
   }
 }
 
-void server(void)
+void server(unsigned int max_clients)
 {
   /* FIXME: capsicum ! */
   switch(st) {
@@ -235,7 +256,7 @@ void server(void)
     server_udp();
     break;
   case SOCK_STREAM:
-    server_tcp();
+    server_tcp(max_clients);
     break;
   default:
     assert(0); /* either UDP or TCP */
