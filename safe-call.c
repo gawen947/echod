@@ -39,6 +39,10 @@
 #include <errno.h>
 #include <err.h>
 
+#ifdef __FreeBSD__
+# include <sys/capsicum.h>
+#endif
+
 #include "safe-call.h"
 
 #define SAFE_CALL0(name, erron, msg, ret)       \
@@ -92,6 +96,9 @@ SAFE_CALL2(getcwd, == NULL, "cannot get current working directory", char *,
 SAFE_CALL2(utime, < 0, "IO chattr error", int, const char *,
            const struct utimbuf *)
 SAFE_CALL2(listen, < 0, "listen error", int, int, int)
+#ifdef __FreeBSD__
+SAFE_CALL2(cap_rights_limit, < 0, "capsicum limit error", int, int, const cap_rights_t *)
+#endif
 
 SAFE_CALL3(read, < 0, "IO read error", ssize_t, int, void *, size_t)
 SAFE_CALL3(write, <= 0, "IO write error", ssize_t, int, const void *, size_t)

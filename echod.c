@@ -36,6 +36,10 @@
 #include <syslog.h>
 #include <err.h>
 
+#ifdef __FreeBSD__
+# include <sys/capsicum.h>
+#endif
+
 #include "echod.h"
 #include "safe-call.h"
 #include "common.h"
@@ -144,6 +148,12 @@ EXIT:
 
 static void server_udp(void)
 {
+#ifdef __FreeBSD__
+  cap_rights_t rights;
+  cap_rights_init(&rights, CAP_RECV, CAP_SEND, CAP_CONNECT);
+  xcap_rights_limit(sd, &rights);
+#endif
+
   while(1) {
     struct sockaddr_storage from;
     socklen_t from_len = sizeof(from);
@@ -179,6 +189,12 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
 {
   struct timeval timeout_tv;
 
+#ifdef __FreeBSD__
+  cap_rights_t rights;
+  cap_rights_init(&rights, CAP_LISTEN, CAP_ACCEPT);
+  xcap_rights_limit(sd, &rights);
+#endif
+
   xlisten(sd, BACKLOG);
 
   if(max_clients)
@@ -203,6 +219,11 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
       syslog(LOG_ERR, "network error: %s", strerror(errno));
       err(EXIT_FAILURE, "network error");
     }
+
+#ifdef __FreeBSD__
+    cap_rights_init(&rights, CAP_RECV, CAP_SEND, CAP_SETSOCKOPT);
+    xcap_rights_limit(fd, &rights);
+#endif
 
     if(max_clients && clients >= max_clients) {
       close(fd);
@@ -271,7 +292,6 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
 
 void server(unsigned int max_clients, unsigned int timeout)
 {
-  /* FIXME: capsicum ! */
   switch(st) {
   case SOCK_DGRAM:
     server_udp();

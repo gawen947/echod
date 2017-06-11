@@ -37,6 +37,10 @@
 #include <unistd.h>
 #include <utime.h>
 
+#ifdef __FreeBSD__
+# include <sys/capsicum.h>
+#endif
+
 int xfork();
 int xpipe(int pipefd[2]);
 int xdup2(int oldfd, int newfd);
@@ -62,5 +66,9 @@ char * xstrdup(const char *s);
 #ifdef USE_THREAD
 int xsem_init(sem_t *sem, int pshared, unsigned int value);
 #endif /* USE_THREAD */
+
+#ifdef __FreeBSD__
+int xcap_rights_limit(int fd, const cap_rights_t *rights);
+#endif
 
 #endif /* _SAFE_CALL_H_ */
