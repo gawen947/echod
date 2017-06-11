@@ -175,12 +175,18 @@ static void sig_chld(int signum)
   clients--;
 }
 
-static void server_tcp(unsigned int max_clients)
+static void server_tcp(unsigned int max_clients, unsigned int timeout)
 {
+  struct timeval timeout_tv;
+
   xlisten(sd, BACKLOG);
 
   if(max_clients)
-  signal(SIGCHLD, sig_chld);
+    signal(SIGCHLD, sig_chld);
+
+  timeout   *= 1000; /* ms to us */
+  timeout_tv = (struct timeval){ .tv_sec  = timeout / 1000000,
+                                 .tv_usec = timeout % 1000000 };
 
   while(1) {
     struct sockaddr_storage from;
@@ -211,13 +217,28 @@ static void server_tcp(unsigned int max_clients)
     if(!pid) { /* child */
       close(sd); /* close unused FD */
 
+      /* configure timeout limit */
+      if(timeout)
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout_tv, sizeof(struct timeval));
+
     RECV_INTR: /* syscall may be interrupted */
       n = recv(fd, buffer, BUFFER_SIZE, 0);
       if(n < 0) {
-        if(errno == EINTR)
+        switch(errno) {
+        case EINTR:
+          /* syscall interrupted */
           goto RECV_INTR;
-        syslog(LOG_ERR, "receive error: %s", strerror(errno));
-        err(EXIT_FAILURE, "receive error");
+        case EAGAIN:
+          if(timeout) { /* probably a timeout */
+            syslog(LOG_DEBUG, "connection timeout");
+            warnx("connection timeout");
+            exit(1);
+          }
+          break;
+        default:
+          syslog(LOG_ERR, "receive error: %s", strerror(errno));
+          err(EXIT_FAILURE, "receive error");
+        }
       }
 
       /* answer */
@@ -248,7 +269,7 @@ static void server_tcp(unsigned int max_clients)
   }
 }
 
-void server(unsigned int max_clients)
+void server(unsigned int max_clients, unsigned int timeout)
 {
   /* FIXME: capsicum ! */
   switch(st) {
@@ -256,7 +277,7 @@ void server(unsigned int max_clients)
     server_udp();
     break;
   case SOCK_STREAM:
-    server_tcp(max_clients);
+    server_tcp(max_clients, timeout);
     break;
   default:
     assert(0); /* either UDP or TCP */

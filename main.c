@@ -87,6 +87,7 @@ static void print_help(const char *name)
     { 'p', "pid",         "Write PID to file" },
     { 'l', "log-level",   "Syslog level from 1 to 8 (default: 7)" },
     { 'c', "max-clients", "Maximum number of simultaneous TCP clients (default: 64)" },
+    { 'T', "timeout",     "Timeout for TCP clients (default: 100ms)" },
     { '4', "inet",        "Listen on IPv4 only" },
     { '6', "inet6",       "Listen on IPv6 only" },
     { 'u', "udp",         "Listen on UDP only" },
@@ -106,6 +107,7 @@ int main(int argc, char *argv[])
   const char    *port         = NULL;
   unsigned long  server_flags = 0;
   unsigned int   max_clients  = 64;
+  unsigned int   timeout      = 100;
   unsigned int   log_level    = LOG_UPTO(LOG_INFO);
   int            exit_status  = EXIT_FAILURE;
   int            only_udp  = 0, only_tcp   = 0;
@@ -127,6 +129,7 @@ int main(int argc, char *argv[])
     { "pid", required_argument, NULL, 'p' },
     { "log-level", required_argument, NULL, 'l' },
     { "max-clients", required_argument, NULL, 'c' },
+    { "timeout", required_argument, NULL, 'T' },
     { "inet", no_argument, NULL, '4' },
     { "inet6", no_argument, NULL, '6' },
     { "udp", no_argument, NULL, 'u' },
@@ -137,7 +140,7 @@ int main(int argc, char *argv[])
   prog_name = basename(argv[0]);
 
   while(1) {
-    int c = getopt_long(argc, argv, "hVdU:p:l:c:46ut", opts, NULL);
+    int c = getopt_long(argc, argv, "hVdU:p:l:c:T:46ut", opts, NULL);
 
     if(c == -1)
       break;
@@ -189,6 +192,12 @@ int main(int argc, char *argv[])
       max_clients = xatou(optarg, &n);
       if(n)
         errx(EXIT_FAILURE, "invalid maximum number of clients");
+      break;
+    case 'T':
+      timeout = xatou(optarg, &n);
+      if(n)
+        errx(EXIT_FAILURE, "invalid timeout value");
+      break;
     case '4':
       only_inet  = 1;
       break;
@@ -290,7 +299,7 @@ int main(int argc, char *argv[])
   setup_signals();
 
   if(!n) /* child */
-    server(max_clients);
+    server(max_clients, timeout);
   else /* parent */
     while(wait(NULL) > 0);
 
