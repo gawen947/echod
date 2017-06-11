@@ -219,8 +219,10 @@ static void server_tcp(void)
       err(EXIT_FAILURE, "fork error");
 
     /* parent (continue) */
-    /* Again there is no need to clear the buffer
+    /* This is probably useless (but we do it anyway).
+       Again there is no need to clear the buffer
        as the parent does not even touch it. */
+    clear_buffer();
     close(fd);
   }
 }
