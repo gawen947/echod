@@ -206,13 +206,22 @@ static void server_tcp(void)
         err(EXIT_FAILURE, "send error");
       }
 
+      /* We don't need to clear the buffer since
+         we have one process per connection.
+         This buffer is inherited from parent
+         which is already cleared. */
+
       /* We answered the client.
          Now we can exit. */
       exit(0);
     }
     else if(pid < 0) /* error */
       err(EXIT_FAILURE, "fork error");
+
     /* parent (continue) */
+    /* Again there is no need to clear the buffer
+       as the parent does not even touch it. */
+    close(fd);
   }
 }
 
