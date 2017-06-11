@@ -85,8 +85,8 @@ static void print_help(const char *name)
     { 'd', "daemon",      "Detach from controlling terminal" },
     { 'U', "user",        "Relinquish privileges to user" },
     { 'p', "pid",         "Write PID to file" },
-    { 'l', "log-level",   "Syslog level from 1 to 8" },
-    { 'c', "max-clients", "Maximum number of simultaneous TCP clients" },
+    { 'l', "log-level",   "Syslog level from 1 to 8 (default: 7)" },
+    { 'c', "max-clients", "Maximum number of simultaneous TCP clients (default: 64)" },
     { '4', "inet",        "Listen on IPv4 only" },
     { '6', "inet6",       "Listen on IPv6 only" },
     { 'u', "udp",         "Listen on UDP only" },
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
   const char    *host         = NULL;
   const char    *port         = NULL;
   unsigned long  server_flags = 0;
-  unsigned int   max_clients  = 0;
+  unsigned int   max_clients  = 64;
   unsigned int   log_level    = LOG_UPTO(LOG_INFO);
   int            exit_status  = EXIT_FAILURE;
   int            only_udp  = 0, only_tcp   = 0;
