@@ -273,8 +273,6 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
       err(EXIT_FAILURE, "network error");
     }
 
-    rename_client_child((struct sockaddr *)&from);
-
 #ifdef __FreeBSD__
     cap_rights_init(&rights, CAP_RECV, CAP_SEND, CAP_SETSOCKOPT);
     xcap_rights_limit(fd, &rights);
@@ -292,6 +290,8 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
     pid = fork();
     if(!pid) { /* child */
       close(sd); /* close unused FD */
+
+      rename_client_child((struct sockaddr *)&from);
 
       /* configure timeout limit */
       if(timeout)
