@@ -29,8 +29,8 @@
 
 #define PACKAGE "echod"
 
-#define MAJOR_VERSION    1
-#define MINOR_VERSION    0
+#define MAJOR_VERSION    0
+#define MINOR_VERSION    99
 
 #define VERSION stringify(MAJOR_VERSION) "." stringify(MINOR_VERSION)
 
