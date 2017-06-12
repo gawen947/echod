@@ -31,5 +31,6 @@ int daemon(int nochdir, int noclose);
 
 void write_pid(const char *pid_file);
 void drop_privileges(const char *user);
+void sandbox(void);
 
 #endif /* _DAEMON_H_ */

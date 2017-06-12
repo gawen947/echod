@@ -101,8 +101,10 @@ void drop_privileges(const char *user)
      setresgid(gid, gid, gid)  ||
      setresuid(uid, uid, uid))
     sysstd_abort("cannot drop privileges");
+}
 
-  /* Enter sandboxed mode */
+void sandbox(void)
+{
 #ifdef __OpenBSD__
   if(pledge("stdio inet proc", NULL) == -1)
     sysstd_abort("cannot pledge");

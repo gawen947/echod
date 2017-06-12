@@ -273,6 +273,8 @@ int main(int argc, char *argv[])
   sysstd_openlog(prog_name, LOG_PID, LOG_DAEMON | LOG_LOCAL0, loglevel);
   sysstd_log(LOG_NOTICE, PACKAGE_VERSION " starting...");
 
+  /* sandbox(); */
+
   /* daemon mode */
   if(server_flags & SRV_DAEMON) {
     if(daemon(0, 0) < 0)
