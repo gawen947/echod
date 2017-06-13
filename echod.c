@@ -45,6 +45,7 @@
 #include "safe-call.h"
 #include "common.h"
 #include "version.h"
+#include "daemon.h"
 #include "log.h"
 
 #define BUFFER_SIZE 4096
@@ -151,6 +152,8 @@ EXIT:
 
 static void server_udp(void)
 {
+  sandbox();
+
 #ifdef __FreeBSD__
   cap_rights_t rights;
   cap_rights_init(&rights, CAP_RECV, CAP_SEND, CAP_CONNECT);
@@ -285,9 +288,9 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
     /* fork again to handle connection */
     pid = fork();
     if(!pid) { /* child */
-      close(sd); /* close unused FD */
-
+      sandbox();
       rename_client_child((struct sockaddr *)&from);
+      close(sd); /* close unused FD */
 
       /* configure timeout limit */
       if(timeout)
