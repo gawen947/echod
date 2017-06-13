@@ -319,11 +319,6 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
       if(n < 0)
         sysstd_abort("send error");
 
-      /* We don't need to clear the buffer since
-         we have one process per connection.
-         This buffer is inherited from parent
-         which is already cleared. */
-
       /* We answered the client.
          Now we can exit. */
       exit(0);
@@ -332,10 +327,6 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
       sysstd_abort("fork error");
 
     /* parent (continue) */
-    /* This is probably useless (but we do it anyway).
-       Again there is no need to clear the buffer
-       as the parent does not even touch it. */
-    clear_buffer();
     close(fd);
   }
 }
