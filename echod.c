@@ -152,12 +152,18 @@ EXIT:
 
 static void server_udp(void)
 {
-  sandbox();
-
 #ifdef __FreeBSD__
   cap_rights_t rights;
   cap_rights_init(&rights, CAP_RECV, CAP_SEND, CAP_CONNECT);
   xcap_rights_limit(sd, &rights);
+#endif
+
+  /* Sandboxing does not work for UDP yet.
+     The sendto() call is rejected in capsicum capability mode.
+     But we cannot connect beforehand because we use a single
+     thread per UDP sockets. */
+#if 0
+  sandbox();
 #endif
 
   while(1) {
