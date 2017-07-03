@@ -72,7 +72,7 @@ int bind_server(const char *host, const char *port, unsigned long flags)
   struct addrinfo *resolution, *r;
   struct addrinfo hints;
   pid_t pid;
-  int n, ret;
+  int n, ret, optval = 1;
 
   memset(&hints, 0, sizeof(hints));
   hints = (struct addrinfo){ .ai_family   = AF_UNSPEC,
@@ -121,20 +121,19 @@ int bind_server(const char *host, const char *port, unsigned long flags)
     }
 
     /* From here all addresses match the filters applied on command line.
-       We fork and each child binds to the specified address. */
+       We bind to the specified address and fork a new child for listening. */
+    sd = xsocket(r->ai_family, r->ai_socktype, r->ai_protocol);
+    af = r->ai_family;
+    st = r->ai_socktype;
+
+    n = setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+    if(n < 0)
+      sysstd_abort("cannot set socket options");
+
+    xbind(sd, r->ai_addr, r->ai_addrlen);
+
     pid = fork();
     if(!pid) { /* child */
-      int optval = 1;
-
-      sd = xsocket(r->ai_family, r->ai_socktype, r->ai_protocol);
-      af = r->ai_family;
-      st = r->ai_socktype;
-
-      n = setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-      if(n < 0)
-        sysstd_abort("cannot set socket options");
-
-      xbind(sd, r->ai_addr, r->ai_addrlen);
       ret = 0;
       goto EXIT;
     }
