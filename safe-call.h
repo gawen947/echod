@@ -41,6 +41,11 @@
 # include <sys/capsicum.h>
 #endif
 
+/* Default error action. Just use err() to
+   display the message, the error number as
+   string and abort with EXIT_FAILURE. */
+void safecall_act_err(const char *msg);
+
 int xfork();
 int xpipe(int pipefd[2]);
 int xdup2(int oldfd, int newfd);
@@ -70,5 +75,8 @@ int xsem_init(sem_t *sem, int pshared, unsigned int value);
 #ifdef __FreeBSD__
 int xcap_rights_limit(int fd, const cap_rights_t *rights);
 #endif
+
+/* Action done when an error occurs in one of the safe calls. */
+extern void (*err_act)(const char *msg);
 
 #endif /* _SAFE_CALL_H_ */

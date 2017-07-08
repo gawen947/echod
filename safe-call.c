@@ -45,41 +45,50 @@
 
 #include "safe-call.h"
 
+/* Default safecall action. (see safe-call.h) */
+void (*err_act)(const char *msg) = safecall_act_err;
+
+void safecall_act_err(const char *msg)
+{
+  /* We avoid "not a string literal" warning.
+     But I still think that's dumb though. */
+  err(EXIT_FAILURE, "%s", msg);
+}
+
 #define SAFE_CALL0(name, erron, msg, ret)       \
   ret x ## name () {                            \
     register ret t = name ();                   \
     if(t erron)                                 \
-      err(EXIT_FAILURE, msg);                   \
+      err_act(msg);                             \
     return t; }
 
 #define SAFE_CALL1(name, erron, msg, ret, type) \
   ret x ## name (type arg) {                    \
     register ret t = name (arg);                \
     if(t erron)                                 \
-      err(EXIT_FAILURE, msg);                   \
+      err_act(msg);                             \
     return t; }
 
 #define SAFE_CALL2(name, erron, msg, ret, type1, type2) \
   ret x ## name (type1 arg1, type2 arg2) {              \
     register ret t = name (arg1, arg2);                 \
     if(t erron)                                         \
-      err(EXIT_FAILURE, msg);                           \
+      err_act(msg);                                     \
     return t; }
 
 #define SAFE_CALL3(name, erron, msg, ret, type1, type2, type3) \
   ret x ## name (type1 arg1, type2 arg2, type3 arg3) {         \
     register ret t = name (arg1, arg2, arg3);                  \
     if(t erron)                                                \
-      err(EXIT_FAILURE, msg);                                  \
+      err_act(msg);                                            \
     return t; }
 
 #define SAFE_CALL4(name, erron, msg, ret, type1, type2, type3, type4) \
   ret x ## name (type1 arg1, type2 arg2, type3 arg3, type4 arg4) {    \
     register ret t = name (arg1, arg2, arg3, arg4);                   \
     if(t erron)                                                       \
-      err(EXIT_FAILURE, msg);                                         \
+      err_act(msg);                                                   \
     return t; }
-
 
 SAFE_CALL0(fork, < 0, "cannot fork", int)
 
