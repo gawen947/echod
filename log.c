@@ -31,6 +31,11 @@
 
 static int std_loglevel;
 
+void safecall_act_sysstd(const char *msg)
+{
+  sysstd_err(EXIT_FAILURE, LOG_ERR, "%s", msg);
+}
+
 void sysstd_openlog(const char *ident, int logopt, int facility, int loglevel)
 {
   openlog(ident, logopt, facility);
@@ -42,19 +47,29 @@ void sysstd_openlog(const char *ident, int logopt, int facility, int loglevel)
 static void sysstd_w(void (*w)(const char *fmt, va_list args),
                      int priority, const char *fmt, va_list args)
 {
+  va_list args_cpy;
+  va_copy(args_cpy, args);
+
   vsyslog(priority, fmt, args);
 
   if(priority <= std_loglevel)
-    w(fmt, args);
+    w(fmt, args_cpy);
+
+  va_end(args_cpy);
 }
 
 static void sysstd_e(void (*e)(int eval, const char *fmt, va_list args),
                      int eval, int priority, const char *fmt, va_list args)
 {
+  va_list args_cpy;
+  va_copy(args_cpy, args);
+
   vsyslog(priority, fmt, args);
 
   if(priority <= std_loglevel)
-    e(eval, fmt, args);
+    e(eval, fmt, args_cpy);
+
+  va_end(args_cpy);
 }
 
 void sysstd_warnx(int priority, const char *fmt, ...)
@@ -62,6 +77,7 @@ void sysstd_warnx(int priority, const char *fmt, ...)
   va_list args;
   va_start(args, fmt);
   sysstd_w(vwarnx, priority, fmt, args);
+  va_end(args);
 }
 
 void sysstd_warn(int priority, const char *fmt, ...)
@@ -70,6 +86,7 @@ void sysstd_warn(int priority, const char *fmt, ...)
   va_start(args, fmt);
   /* FIXME: add current error message to syslog with ": %m" */
   sysstd_w(vwarn, priority, fmt, args);
+  va_end(args);
 }
 
 void sysstd_errx(int eval, int priority, const char *fmt, ...)
@@ -77,6 +94,7 @@ void sysstd_errx(int eval, int priority, const char *fmt, ...)
   va_list args;
   va_start(args, fmt);
   sysstd_e(verrx, eval, priority, fmt, args);
+  va_end(args);
 }
 
 void sysstd_err(int eval, int priority, const char *fmt, ...)
@@ -85,6 +103,7 @@ void sysstd_err(int eval, int priority, const char *fmt, ...)
   va_start(args, fmt);
   /* FIXME: add current error message to syslog with ": %m" */
   sysstd_e(verr, eval, priority, fmt, args);
+  va_end(args);
 }
 
 void sysstd_log(int priority, const char *fmt, ...)
@@ -96,4 +115,6 @@ void sysstd_log(int priority, const char *fmt, ...)
     vfprintf(stderr, fmt, args);
     fputc('\n', stderr);
   }
+
+  va_end(args);
 }

@@ -76,7 +76,10 @@ int xsem_init(sem_t *sem, int pshared, unsigned int value);
 int xcap_rights_limit(int fd, const cap_rights_t *rights);
 #endif
 
+/* Default error action. */
+void safecall_default_act(const char *msg);
+
 /* Action done when an error occurs in one of the safe calls. */
-extern void (*err_act)(const char *msg);
+extern void (*safecall_err_act)(const char *msg);
 
 #endif /* _SAFE_CALL_H_ */

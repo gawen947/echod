@@ -32,6 +32,7 @@
 #include <err.h>
 
 #include "string-utils.h"
+#include "safe-call.h"
 #include "version.h"
 #include "xatoi.h"
 #include "echod.h"
@@ -272,6 +273,7 @@ int main(int argc, char *argv[])
   /* syslog and start notification */
   sysstd_openlog(prog_name, LOG_PID, LOG_DAEMON | LOG_LOCAL0, loglevel);
   sysstd_log(LOG_NOTICE, PACKAGE_VERSION " starting...");
+  safecall_err_act = safecall_act_sysstd;
 
   /* daemon mode */
   if(server_flags & SRV_DAEMON) {

@@ -43,4 +43,7 @@ void sysstd_errx(int eval, int priority, const char *fmt, ...);
 void sysstd_err(int eval, int priority, const char *fmt, ...);
 void sysstd_log(int priority, const char *fmt, ...);
 
+/* Safe call error action when sysstd has been enabled. */
+void safecall_act_sysstd(const char *msg);
+
 #endif /* _LOG_H_ */
