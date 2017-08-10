@@ -23,13 +23,18 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdarg.h>
 #include <syslog.h>
 #include <err.h>
 
 #include "log.h"
+#include "common.h"
 
-static int std_loglevel;
+#define MAX_MSG_SIZE 4095
+
+static char msg_buf[MAX_MSG_SIZE];
+static int  std_loglevel;
 
 void safecall_act_sysstd(const char *msg)
 {
@@ -44,30 +49,61 @@ void sysstd_openlog(const char *ident, int logopt, int facility, int loglevel)
   std_loglevel = loglevel;
 }
 
-static void sysstd_w(void (*w)(const char *fmt, va_list args),
-                     int priority, const char *fmt, va_list args)
+/* Send a message to syslog. Also appends the current error message when
+   display_error is true. */
+static void sysstd_vsyslog(bool display_error, int priority, const char *fmt, va_list args)
 {
-  va_list args_cpy;
-  va_copy(args_cpy, args);
-
-  vsyslog(priority, fmt, args);
-
-  if(priority <= std_loglevel)
-    w(fmt, args_cpy);
-
-  va_end(args_cpy);
+  if(display_error) {
+    vsnprintf(msg_buf, MAX_MSG_SIZE, fmt, args);
+    syslog(priority, "%s: %m", msg_buf);
+  }
+  else
+    vsyslog(priority, fmt, args);
 }
 
-static void sysstd_e(void (*e)(int eval, const char *fmt, va_list args),
-                     int eval, int priority, const char *fmt, va_list args)
+/* Redefinition of verr/vwarn functions with a uniform signature
+   that we use for call indirection in the generic sysstd_output
+   function below. */
+static void sysstd_uniform_verrx(int eval, const char *fmt, va_list args)
+{
+  verrx(eval, fmt, args);
+}
+
+static void sysstd_uniform_verr(int eval, const char *fmt, va_list args)
+{
+  verr(eval, fmt, args);
+}
+
+static void sysstd_uniform_vwarnx(int eval, const char *fmt, va_list args)
+{
+  UNUSED(eval);
+  vwarnx(fmt, args);
+}
+
+static void sysstd_uniform_vwarn(int eval, const char *fmt, va_list args)
+{
+  UNUSED(eval);
+  vwarn(fmt, args);
+}
+
+static void sysstd_uniform_vlog(int eval, const char *fmt, va_list args)
+{
+  UNUSED(eval);
+  vfprintf(stderr, fmt, args);
+}
+
+/* Display message on standard output and also log it into syslog.
+   This is a generic function that we use in the err/warn wrappers. */
+static void sysstd_output(void (*out)(int eval, const char *fmt, va_list args),
+                          bool display_error, int eval, int priority, const char *fmt, va_list args)
 {
   va_list args_cpy;
   va_copy(args_cpy, args);
 
-  vsyslog(priority, fmt, args);
+  sysstd_vsyslog(display_error, priority, fmt, args);
 
   if(priority <= std_loglevel)
-    e(eval, fmt, args_cpy);
+    out(eval, fmt, args_cpy);
 
   va_end(args_cpy);
 }
@@ -76,7 +112,10 @@ void sysstd_warnx(int priority, const char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
-  sysstd_w(vwarnx, priority, fmt, args);
+
+  sysstd_output(sysstd_uniform_vwarnx,
+                false, 0, priority, fmt, args);
+
   va_end(args);
 }
 
@@ -84,8 +123,10 @@ void sysstd_warn(int priority, const char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
-  /* FIXME: add current error message to syslog with ": %m" */
-  sysstd_w(vwarn, priority, fmt, args);
+
+  sysstd_output(sysstd_uniform_vwarn,
+                true, 0, priority, fmt, args);
+
   va_end(args);
 }
 
@@ -93,7 +134,10 @@ void sysstd_errx(int eval, int priority, const char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
-  sysstd_e(verrx, eval, priority, fmt, args);
+
+  sysstd_output(sysstd_uniform_verrx,
+                false, eval, priority, fmt, args);
+
   va_end(args);
 }
 
@@ -101,8 +145,10 @@ void sysstd_err(int eval, int priority, const char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
-  /* FIXME: add current error message to syslog with ": %m" */
-  sysstd_e(verr, eval, priority, fmt, args);
+
+  sysstd_output(sysstd_uniform_verr,
+                true, eval, priority, fmt, args);
+
   va_end(args);
 }
 
@@ -111,10 +157,8 @@ void sysstd_log(int priority, const char *fmt, ...)
   va_list args;
   va_start(args, fmt);
 
-  if(priority <= std_loglevel) {
-    vfprintf(stderr, fmt, args);
-    fputc('\n', stderr);
-  }
+  sysstd_output(sysstd_uniform_vlog,
+                false, 0, priority, fmt, args);
 
   va_end(args);
 }
