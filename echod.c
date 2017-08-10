@@ -250,7 +250,7 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
 
 #ifdef __FreeBSD__
   cap_rights_t rights;
-  cap_rights_init(&rights, CAP_LISTEN, CAP_ACCEPT);
+  cap_rights_init(&rights, CAP_LISTEN, CAP_ACCEPT, CAP_RECV, CAP_SEND , CAP_SETSOCKOPT);
   xcap_rights_limit(sd, &rights);
 #endif
 
@@ -278,7 +278,7 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
     }
 
 #ifdef __FreeBSD__
-    cap_rights_init(&rights, CAP_RECV, CAP_SEND, CAP_SETSOCKOPT);
+    cap_rights_init(&rights, CAP_RECV, CAP_SEND , CAP_SETSOCKOPT);
     xcap_rights_limit(fd, &rights);
 #endif
 
