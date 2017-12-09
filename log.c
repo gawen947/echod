@@ -90,6 +90,7 @@ static void sysstd_uniform_vlog(int eval, const char *fmt, va_list args)
 {
   UNUSED(eval);
   vfprintf(stderr, fmt, args);
+  fputc('\n', stderr);
 }
 
 /* Display message on standard output and also log it into syslog.
