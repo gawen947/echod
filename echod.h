@@ -28,7 +28,11 @@
 /* We use a numeric port instead of the service name (echo)
    since it will generally bind to port 4 (AppleTalk Echo)
    when it is only defined. */
-#define DEFAULT_PORT "7"
+#ifdef DISCARDD
+# define DEFAULT_PORT "9"
+#else
+# define DEFAULT_PORT "7"
+#endif
 
 struct host {
   const char *host;
