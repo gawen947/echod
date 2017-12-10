@@ -287,6 +287,10 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
 
   xlisten(sd, BACKLOG);
 
+  /* We cannot use SA_NOCLDWAIT here because we have no
+     guarantee that a signal would still be generated.
+     Linux for example still does, FreeBSD does not.
+     Yet we do need the signal to decrement clients. */
   signal(SIGCHLD, sig_chld);
 
   timeout   *= 1000; /* ms to us */
