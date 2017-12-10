@@ -67,85 +67,116 @@ static unsigned int clients; /* number of clients connected */
 
 static unsigned char buffer[BUFFER_SIZE];
 
-int bind_server(const char *host, const char *port, unsigned long flags)
+struct host * add_host(struct host *hosts, const char *host, const char *port)
+{
+  struct host *h = xmalloc(sizeof(struct host));
+
+  h->host = host;
+  h->port = port;
+  h->next = hosts;
+
+  return h;
+}
+
+void free_hosts(struct host *hosts)
+{
+  while(hosts) {
+    struct host *h = hosts;
+    hosts = hosts->next;
+    free(h);
+  }
+}
+
+int bind_server(const struct host *hosts, unsigned long flags)
 {
   struct addrinfo *resolution, *r;
   struct addrinfo hints;
+  const struct host *h;
   pid_t pid;
-  int n, ret, optval = 1;
+  int n, ret, optval = 1, resolved = 0;
 
-  memset(&hints, 0, sizeof(hints));
-  hints = (struct addrinfo){ .ai_family   = AF_UNSPEC,
-                             .ai_flags    = AI_PASSIVE };
+  for(h = hosts ; h ; h = h->next) {
+    memset(&hints, 0, sizeof(hints));
+    hints = (struct addrinfo){ .ai_family   = AF_UNSPEC,
+                               .ai_flags    = AI_PASSIVE };
 
-  /* select address family and protocol */
-  if(flags & SRV_INET)
-    hints.ai_family = AF_INET;
-  if(flags & SRV_INET6)
-    hints.ai_family = AF_INET6;
-  if(flags & SRV_UDP) {
-    hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_protocol = IPPROTO_UDP;
-  }
-  if(flags & SRV_TCP) {
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
-  }
+    /* select address family and protocol */
+    if(flags & SRV_INET)
+      hints.ai_family = AF_INET;
+    if(flags & SRV_INET6)
+      hints.ai_family = AF_INET6;
+    if(flags & SRV_UDP) {
+      hints.ai_socktype = SOCK_DGRAM;
+      hints.ai_protocol = IPPROTO_UDP;
+    }
+    if(flags & SRV_TCP) {
+      hints.ai_socktype = SOCK_STREAM;
+      hints.ai_protocol = IPPROTO_TCP;
+    }
 
-  n = getaddrinfo(host, port, &hints, &resolution);
-  if(n)
-    sysstd_abortx("cannot resolve requested address: %s", gai_strerror(n));
-
-  for(r = resolution ; r ; r = r->ai_next) {
-    /* filter unwanted addresses */
-    switch(r->ai_family) {
-    case AF_INET:
-    case AF_INET6:
-      break;
-    default:
+    n = getaddrinfo(h->host, h->port, &hints, &resolution);
+    if(n) {
+      sysstd_warnx(LOG_WARNING, "cannot resolve requested address: %s", gai_strerror(n));
       continue;
     }
-    switch(r->ai_socktype) {
-    case SOCK_DGRAM:
-    case SOCK_STREAM:
-      break;
-    default:
-      continue;
+    else
+      resolved++;
+
+    for(r = resolution ; r ; r = r->ai_next) {
+      /* filter unwanted addresses */
+      switch(r->ai_family) {
+      case AF_INET:
+      case AF_INET6:
+        break;
+      default:
+        continue;
+      }
+      switch(r->ai_socktype) {
+      case SOCK_DGRAM:
+      case SOCK_STREAM:
+        break;
+      default:
+        continue;
+      }
+      switch(r->ai_protocol) {
+      case IPPROTO_UDP:
+      case IPPROTO_TCP:
+        break;
+      default:
+        continue;
+      }
+
+      /* From here all addresses match the filters applied on command line.
+         We bind to the specified address and fork a new child for listening. */
+      sd = xsocket(r->ai_family, r->ai_socktype, r->ai_protocol);
+      af = r->ai_family;
+      st = r->ai_socktype;
+
+      n = setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+      if(n < 0)
+        sysstd_abort("cannot set socket options");
+
+      xbind(sd, r->ai_addr, r->ai_addrlen);
+
+      pid = fork();
+      if(!pid) { /* child */
+        freeaddrinfo(resolution);
+        ret = 0;
+        goto EXIT;
+      }
+      else if(pid < 0) /* error */
+        sysstd_abort("fork error");
+      /* parent (continue) */
     }
-    switch(r->ai_protocol) {
-    case IPPROTO_UDP:
-    case IPPROTO_TCP:
-      break;
-    default:
-      continue;
-    }
 
-    /* From here all addresses match the filters applied on command line.
-       We bind to the specified address and fork a new child for listening. */
-    sd = xsocket(r->ai_family, r->ai_socktype, r->ai_protocol);
-    af = r->ai_family;
-    st = r->ai_socktype;
-
-    n = setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-    if(n < 0)
-      sysstd_abort("cannot set socket options");
-
-    xbind(sd, r->ai_addr, r->ai_addrlen);
-
-    pid = fork();
-    if(!pid) { /* child */
-      ret = 0;
-      goto EXIT;
-    }
-    else if(pid < 0) /* error */
-      sysstd_abort("fork error");
-    /* parent (continue) */
+    freeaddrinfo(resolution);
   }
 
   /* parent */
+  if(!resolved)
+    sysstd_abortx("no address resolved");
   ret = 1;
 EXIT:
-  freeaddrinfo(resolution);
   return ret;
 }
 

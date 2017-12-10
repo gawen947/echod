@@ -97,16 +97,15 @@ static void print_help(const char *name)
     { 0, NULL, NULL }
   };
 
-  help(name, "[OPTIONS] [host][/port]", messages);
+  help(name, "[OPTIONS] [hostA/[portA]] [hostB/[portB]] ...", messages);
 }
 
 int main(int argc, char *argv[])
 {
+  struct host   *hosts        = NULL;
   const char    *prog_name;
   const char    *pid_file     = NULL;
   const char    *user         = NULL;
-  const char    *host         = NULL;
-  const char    *port         = NULL;
   unsigned long  server_flags = 0;
   unsigned int   max_clients  = 64;
   unsigned int   timeout      = 100;
@@ -237,21 +236,25 @@ int main(int argc, char *argv[])
   argv += optind;
 
   /* parse address and port number */
-  if(argc == 1) {
-    host = strtok(argv[0], "/");
+  for(; *argv; argv++) {
+    const char *host, *port;
+
+    host = strtok(*argv, "/");
     port = strtok(NULL, "/");
-  } else if(argc > 1) {
-    print_help(prog_name);
-    goto EXIT;
+
+    /* some users may use '*' for ADDR_ANY */
+    if(host && !strcmp(host, "*"))
+      host = NULL;
+    /* configure default port */
+    if(!port)
+      port = DEFAULT_PORT;
+
+    hosts = add_host(hosts, host, port);
   }
 
-  /* some users may use '*' for ADDR_ANY */
-  if(host && !strcmp(host, "*"))
-    host = NULL;
-
-  /* configure default port */
-  if(!port)
-    port = DEFAULT_PORT;
+  /* default address and port number */
+  if(!hosts)
+    hosts = add_host(hosts, NULL, DEFAULT_PORT);
 
   /* By default we listen on both TCP/UDP. The TCP/UDP only
      flags will force the selection of either TCP or UDP.
@@ -292,7 +295,8 @@ int main(int argc, char *argv[])
     write_pid(pid_file);
 
   /* bind before we drop privileges */
-  n = bind_server(host, port, server_flags);
+  n = bind_server(hosts, server_flags);
+  free_hosts(hosts);
 
   if(user) {
     drop_privileges(user);
