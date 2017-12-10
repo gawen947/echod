@@ -45,7 +45,7 @@ static void sig_quit(int signum)
 {
   UNUSED(signum);
 
-  syslog(LOG_NOTICE, "exiting...");
+  syslog(LOG_DEBUG, "exiting...");
   exit(EXIT_SUCCESS);
 }
 
