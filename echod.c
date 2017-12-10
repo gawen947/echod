@@ -59,9 +59,17 @@
 # define clear_buffer() (void)0
 #endif /* DO_CLEAR_BUFFER */
 
-static int sd; /* socket descriptor */
-static int af; /* address family */
-static int st; /* socket type */
+/* presentation format for INET or INET6 sockaddr
+   including port number in host order */
+struct inetaddr {
+  char addr[INET6_ADDRSTRLEN];
+  int  port;
+};
+
+static int      sd;             /* socket descriptor */
+static int      af;             /* address family */
+static int      st;             /* socket type */
+struct sockaddr host_addr;      /* listen address */
 
 static unsigned int clients; /* number of clients connected */
 
@@ -149,8 +157,6 @@ int bind_server(const struct host *hosts, unsigned long flags)
       /* From here all addresses match the filters applied on command line.
          We bind to the specified address and fork a new child for listening. */
       sd = xsocket(r->ai_family, r->ai_socktype, r->ai_protocol);
-      af = r->ai_family;
-      st = r->ai_socktype;
 
       n = setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
       if(n < 0)
@@ -160,6 +166,10 @@ int bind_server(const struct host *hosts, unsigned long flags)
 
       pid = fork();
       if(!pid) { /* child */
+        af = r->ai_family;
+        st = r->ai_socktype;
+        memcpy(&host_addr, r->ai_addr, r->ai_addrlen);
+
         freeaddrinfo(resolution);
         ret = 0;
         goto EXIT;
@@ -225,21 +235,36 @@ static void sig_chld(int signum)
   wait(NULL);
 }
 
-static void rename_listen_child(void)
+static void sockaddr_ntop(const struct sockaddr *addr, struct inetaddr *pres, int af)
 {
-  const char *st_s;
-  const char *af_s;
+  void *addr_in;
+  union {
+    struct sockaddr_in  *inet;
+    struct sockaddr_in6 *inet6;
+  } sockaddr;
 
   switch(af) {
   case AF_INET:
-    af_s = "IPv4";
+    sockaddr.inet  = (struct sockaddr_in *)addr;
+    pres->port      = ntohs(sockaddr.inet->sin_port);
+    addr_in        = &sockaddr.inet->sin_addr;
     break;
   case AF_INET6:
-    af_s = "IPv6";
+    sockaddr.inet6 = (struct sockaddr_in6 *)addr;
+    pres->port      = ntohs(sockaddr.inet6->sin6_port);
+    addr_in        = &sockaddr.inet6->sin6_addr;
     break;
   default:
     assert(0);
   }
+
+  inet_ntop(af, addr_in, pres->addr, sizeof(pres->addr));
+}
+
+static void rename_listen_child(void)
+{
+  struct inetaddr pres;
+  const char *st_s;
 
   switch(st) {
   case SOCK_DGRAM:
@@ -252,27 +277,16 @@ static void rename_listen_child(void)
     assert(0);
   }
 
-  setproctitle("listen on %s %s", st_s, af_s);
+  sockaddr_ntop(&host_addr, &pres, af);
+
+  setproctitle("listen on %s/%d.%s", pres.addr, pres.port, st_s);
 }
 
 static void rename_client_child(const struct sockaddr *addr)
 {
-  char client[INET6_ADDRSTRLEN];
-  const void *addr_in;
-
-  switch(af) {
-  case AF_INET:
-    addr_in = &((struct sockaddr_in *)addr)->sin_addr;
-    break;
-  case AF_INET6:
-    addr_in = &((struct sockaddr_in6 *)addr)->sin6_addr;
-    break;
-  default:
-    assert(0);
-  }
-
-  inet_ntop(af, addr_in, client, sizeof(client));
-  setproctitle("connection from %s", client);
+  struct inetaddr pres;
+  sockaddr_ntop(addr, &pres, af);
+  setproctitle("connection from %s/%d", pres.addr, pres.port);
 }
 
 static void server_tcp(unsigned int max_clients, unsigned int timeout)
