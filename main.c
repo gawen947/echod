@@ -73,7 +73,7 @@ static void setup_signals(void)
   };
 
   setup_siglist(signals_quit, &act_quit, sizeof_array(signals_quit));
-  setup_siglist(signals_ign, &act_ign, sizeof_array(signals_quit));
+  setup_siglist(signals_ign, &act_ign, sizeof_array(signals_ign));
 }
 
 static void print_help(const char *name)
