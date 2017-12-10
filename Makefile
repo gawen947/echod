@@ -1,5 +1,3 @@
-TARGET=echod
-
 SRC  = $(wildcard *.c)
 OBJS = $(SRC:.c=.o)
 DEPS = $(SRC:.c=.d)
@@ -7,6 +5,13 @@ DEPS = $(SRC:.c=.d)
 CFLAGS := -O2 -fomit-frame-pointer -std=c99 \
 	-pedantic -Wall -Wextra -MMD -pipe
 LDFLAGS :=
+
+ifdef DISCARDD
+	TARGET  = discardd
+	CFLAGS += -DDISCARDD=1
+else
+	TARGET  = echod
+endif
 
 ifdef VERBOSE
 	Q :=

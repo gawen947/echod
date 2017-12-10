@@ -27,7 +27,11 @@
 
 #include "string-utils.h"
 
-#define PACKAGE "echod"
+#ifdef DISCARDD
+# define PACKAGE "discardd"
+#else
+# define PACKAGE "echod"
+#endif
 
 #define MAJOR_VERSION    0
 #define MINOR_VERSION    99

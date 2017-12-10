@@ -219,10 +219,12 @@ static void server_udp(void)
       sysstd_abort("receive error");
     }
 
+#ifndef DISCARDD
     /* answer */
     n = sendto(sd, buffer, n, 0, (struct sockaddr *)&from, from_len);
     if(n < 0)
       sysstd_abort("send error");
+#endif
 
     clear_buffer();
   }
@@ -368,10 +370,12 @@ static void server_tcp(unsigned int max_clients, unsigned int timeout)
         }
       }
 
+#ifndef DISCARDD
       /* answer */
       n = send(fd, buffer, n, 0);
       if(n < 0)
         sysstd_abort("send error");
+#endif
 
       /* We answered the client.
          Now we can exit. */
