@@ -1,0 +1,85 @@
+.TH echod 8 "2017-12-09" "echod" "Echo Daemon"
+.SH NAME
+.LP
+.B echod
+\- Echo Protocol daemon.
+
+.SH SYNOPSIS
+.B echod
+.RI [options]
+.RI [hostA[/portA]]
+.RI [hostB[/portB]]
+.RI ...
+.SH DESCRIPTION
+.TP
+The echod daemon is an implementation of the Echo Protocol (RFC 862). The daemon simply sends back to the originating source any data it receives. This can be used as a debugging, measurement or test service. Unlike other implementations it is not run from inetd but as a standalone deamon. It supports the UDP and TCP transport layers, IPv4 and IPv6 network layers and uses sandboxing mechanisms when available.
+
+.P
+By default IPv4, IPv6, UDP and TCP are all enabled. It is possible to select either network, transport layers individually with the \fB-4\fR, \fB-6\fR, \fB-u\fR and \fB-t\fR options. The daemon listens by default on any address. This can be changed by specifying a host and optional port. If multiple records are available for the specified host, the daemon will listen on each one of them. The port itself can be changed using the any address and specifying the new port number, \fB*/\fIport\fR. Multiple listening hosts can be specified. The daemon fails if none of the provided host and port resolved into a listening address.
+
+.SH OPTIONS
+.TP
+.B \-h, \-\-help
+Show the version and commandline option help.
+.TP
+.B \-V, \-\-version
+Show the version informations.
+.TP
+.B \-d, \-\-daemon
+Detach the server from the controlling terminal. All standard outputs are redirected to \fI/dev/null\fR. Messages are still recorded into syslog according to the configured log level.
+.TP
+.B \-U, \-\-user\fI user
+Relinquishes privileges to the specified user and its primary group after initial setup. It also chroots itself to the empty directory \fI/var/empty\fR if possible. While running the daemon does not requires any special privilege so \fInobody\fR can safely be used here.
+.TP
+.B \-p, \-\-pid\fI file
+Write the PID of the main daemon process to the specified file.
+.TP
+.B \-l, \-\-log-level\fI level
+Log messages up to the specified log level (default to 7). The following levels are available:
+.br
+\[bu] Emergency (1).
+.br
+\[bu] Alert (2).
+.br
+\[bu] Critical (3).
+.br
+\[bu] Error (4).
+.br
+\[bu] Warning (5).
+.br
+\[bu] Notice (6).
+.br
+\[bu] Info (7).
+.br
+\[bu] Debug (8).
+.br
+.TP
+.B \-c, \-\-max-clients\fI max
+Only allow a maximum number of simultaneous TCP clients (default to 64). A value of 0 disable this feature.
+.TP
+.B \-T, \-\-timeout\fI timeout (ms)
+Drops the TCP connection if the client does not send any message within the specifed timeout duration (default to 100ms). A value of 0 disable this feature.
+.TP
+.B \-4, \-\-inet
+Listen on IPv4 only.
+.TP
+.B \-6, \-\-inet6
+Listen on IPv6 only.
+.TP
+.B \-u, \-\-udp
+Listen on UDP only.
+.TP
+.B \-t, \-\-tcp
+Listen on TCP only.
+
+.SH BUGS
+Sandboxing does not work for UDP yet. New connections are rejected in capability mode and since we use a single thread per listening UDP socket we cannot send the answer back to the client.
+
+Bug reports are welcome at \fIhttp://github.com/gawen947/echod/issues\fR
+
+.SH SEE ALSO
+\fIdiscardd\fR(8),
+\fIinetd\fR(8).
+
+.SH AUTHORS
+echod was written by David Hauweele <david@hauweele.net>
