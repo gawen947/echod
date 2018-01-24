@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2016, David Hauweele <david@hauweele.net>
+/* Copyright (c) 2018, David Hauweele <david@hauweele.net>
    All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
@@ -22,16 +22,9 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _HELP_H_
-#define _HELP_H_
+#ifndef _SANDBOX_H_
+#define _SANDBOX_H_
 
-struct opt_help {
-  char name_short;
-  const char *name_long;
-  const char *help;
-};
+void sandbox(void);
 
-/* Display an help message for a list of long and short options. */
-void help(const char *name, const char *usage, const struct opt_help opts[]);
-
-#endif /* _HELP_H_ */
+#endif /* _SANDBOX_H_ */

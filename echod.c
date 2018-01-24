@@ -41,12 +41,13 @@
 # include <sys/capsicum.h>
 #endif
 
+#include <gawen/safe-call.h>
+#include <gawen/common.h>
+#include <gawen/log.h>
+
 #include "echod.h"
-#include "safe-call.h"
-#include "common.h"
 #include "version.h"
-#include "daemon.h"
-#include "log.h"
+#include "sandbox.h"
 
 #define BUFFER_SIZE 4096
 #define BACKLOG     4

@@ -4,7 +4,7 @@ DEPS = $(SRC:.c=.d)
 
 CFLAGS := -O2 -fomit-frame-pointer -std=c99 \
 	-pedantic -Wall -Wextra -MMD -pipe
-LDFLAGS :=
+LDFLAGS := -lgawen
 
 ifdef DISCARDD
 	TARGET  = discardd

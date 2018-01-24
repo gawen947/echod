@@ -1,4 +1,4 @@
-/* Copyright (c) 2016-2017, David Hauweele <david@hauweele.net>
+/* Copyright (c) 2018, David Hauweele <david@hauweele.net>
    All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
@@ -22,14 +22,22 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _STRING_UTILS_H_
-#define _STRING_UTILS_H_
+#include <gawen/log.h>
 
-/* Transform macro argument as string literal. */
-#define _stringify(s) #s
-#define stringify(s) _stringify(s)
+#ifdef __FreeBSD__
+# include <sys/capsicum.h>
+#endif
 
-/* Equivalent of the Unix basename command. */
-const char * basename(const char *s);
+void sandbox(void)
+{
+#ifdef __OpenBSD__
+  if(pledge("stdio inet proc", NULL) == -1)
+    sysstd_abort("cannot pledge");
+#endif
 
-#endif /* _STRING_UTILS_H_ */
+#ifdef __FreeBSD__
+  if(cap_enter() < 0)
+    sysstd_abort("cannot enter into capability mode");
+  /* We still have to drop privileges for each fd later on. */
+#endif
+}

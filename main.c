@@ -31,15 +31,16 @@
 #include <string.h>
 #include <err.h>
 
-#include "string-utils.h"
-#include "safe-call.h"
+#include <gawen/safe-call.h>
+#include <gawen/daemon.h>
+#include <gawen/common.h>
+#include <gawen/string.h>
+#include <gawen/xatoi.h>
+#include <gawen/help.h>
+#include <gawen/log.h>
+
 #include "version.h"
-#include "xatoi.h"
 #include "echod.h"
-#include "daemon.h"
-#include "common.h"
-#include "help.h"
-#include "log.h"
 
 static void sig_quit(int signum)
 {

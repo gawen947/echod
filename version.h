@@ -25,7 +25,7 @@
 #ifndef _VERSION_H_
 #define _VERSION_H_
 
-#include "string-utils.h"
+#include <gawen/string.h>
 
 #ifdef DISCARDD
 # define PACKAGE "discardd"
